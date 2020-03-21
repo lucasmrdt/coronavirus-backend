@@ -1,44 +1,84 @@
-import * as admin from "firebase-admin";
-import { log } from "../logger";
-import { MedicalCase } from "../Medical";
+import * as admin from 'firebase-admin';
+import {log} from '../logger';
+import {Country} from '../Country';
+import {
+  COUNTRIES_ID_BY_PUSH_TOKEN,
+  PUSH_TOKENS_BY_COUNTRY_REF,
+} from './notification.constants';
 
-const notificationRef = admin.database().ref("/notifications");
+const pushTokensByCountryRef = admin.database().ref(PUSH_TOKENS_BY_COUNTRY_REF);
 
-export const getWatchersForCase = (medicalCase: MedicalCase) =>
+const countriesIdByPushToken = admin.database().ref(COUNTRIES_ID_BY_PUSH_TOKEN);
+
+export const getWatchersForCountry = (country: Country) =>
   new Promise<string[]>((res, rej) =>
-    notificationRef.child(medicalCase.id).once(
-      "value",
+    pushTokensByCountryRef.child(country.id).once(
+      'value',
       snapshot => {
         const value = snapshot.val();
         res(Array.isArray(value) ? value : []);
       },
-      rej
-    )
+      rej,
+    ),
   );
 
-export const addWatcherForCase = async (
-  medicalCase: MedicalCase,
-  pushId: string
+export const getWatchedCountriesIdForUser = (pushId: string) =>
+  new Promise<string[]>((res, rej) =>
+    countriesIdByPushToken.child(pushId).once(
+      'value',
+      snapshot => {
+        const value = snapshot.val();
+        res(Array.isArray(value) ? value : []);
+      },
+      rej,
+    ),
+  );
+
+export const addWatcherForCountry = async (
+  country: Country,
+  pushId: string,
 ) => {
-  const watchers = await getWatchersForCase(medicalCase);
+  const watchers = await getWatchersForCountry(country);
+  const countriesId = await getWatchedCountriesIdForUser(pushId);
   if (watchers.includes(pushId)) {
-    log(`user "${pushId}" has already watch country "${medicalCase}"`);
+    log(
+      `user "${pushId}" has already watch country "${
+        country.name
+      }|${country.subName || 'global'}"`,
+    );
     return;
   }
-  log(`add watcher "${pushId}" for country "${medicalCase}"`);
-  return notificationRef.child(medicalCase.id).update([...watchers, pushId]);
+  log(
+    `add watcher "${pushId}" for country "${country.name}|${country.subName ||
+      'global'}"`,
+  );
+  await countriesIdByPushToken.child(pushId).set([...countriesId, country.id]);
+  await pushTokensByCountryRef.child(country.id).set([...watchers, pushId]);
 };
 
-export const removeWatcherForCase = async (
-  medicalCase: MedicalCase,
-  pushId: string
+export const removeWatcherForCountry = async (
+  country: Country,
+  pushId: string,
 ) => {
-  const watchers = await getWatchersForCase(medicalCase);
+  const watchers = await getWatchersForCountry(country);
+  const countriesId = await getWatchedCountriesIdForUser(pushId);
   if (!watchers.includes(pushId)) {
-    log(`user "${pushId}" hasn't yet watch country "${medicalCase}"`);
+    log(
+      `user "${pushId}" hasn't yet watch country "${
+        country.name
+      }|${country.subName || 'global'}"`,
+    );
     return;
   }
-  log(`remove watcher "${pushId}" for country "${medicalCase}"`);
+  log(
+    `remove watcher "${pushId}" for country "${
+      country.name
+    }|${country.subName || 'global'}"`,
+  );
   const newWatchers = watchers.filter(watcher => watcher !== pushId);
-  return notificationRef.child(medicalCase.id).update(newWatchers);
+  const newCountriesId = countriesId.filter(
+    countryId => countryId !== country.id,
+  );
+  await countriesIdByPushToken.child(pushId).set(newCountriesId);
+  await pushTokensByCountryRef.child(country.id).set(newWatchers);
 };
