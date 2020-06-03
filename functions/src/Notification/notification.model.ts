@@ -1,47 +1,74 @@
 import * as admin from 'firebase-admin';
-import {log} from '../logger';
-import {Country} from '../Country';
+
+import {FAKE_DATA_PREFIX, REAL_DATA_PREFIX} from '@/config';
+import {log} from '@/logger';
+import {Country} from '@/Country';
+
 import {
   COUNTRIES_ID_BY_PUSH_TOKEN,
   PUSH_TOKENS_BY_COUNTRY_REF,
 } from './notification.constants';
 
-const pushTokensByCountryRef = admin.database().ref(PUSH_TOKENS_BY_COUNTRY_REF);
+export const fakePushTokensByCountryRef = admin
+  .database()
+  .ref(`${FAKE_DATA_PREFIX}_${PUSH_TOKENS_BY_COUNTRY_REF}`);
+export const realPushTokensByCountryRef = admin
+  .database()
+  .ref(`${REAL_DATA_PREFIX}_${PUSH_TOKENS_BY_COUNTRY_REF}`);
 
-const countriesIdByPushToken = admin.database().ref(COUNTRIES_ID_BY_PUSH_TOKEN);
+export const fakeCountriesIdByPushTokenRef = admin
+  .database()
+  .ref(`${FAKE_DATA_PREFIX}_${COUNTRIES_ID_BY_PUSH_TOKEN}`);
+export const realCountriesIdByPushTokenRef = admin
+  .database()
+  .ref(`${REAL_DATA_PREFIX}_${COUNTRIES_ID_BY_PUSH_TOKEN}`);
 
-export const getWatchersForCountry = (country: Country) =>
+const getPushTokensByCountryRef = (needFake: boolean) =>
+  needFake ? fakePushTokensByCountryRef : realPushTokensByCountryRef;
+const getCountriesIdByPushTokenRef = (needFake: boolean) =>
+  needFake ? fakeCountriesIdByPushTokenRef : realCountriesIdByPushTokenRef;
+
+export const getWatchersForCountry = (country: Country, needFake: boolean) =>
   new Promise<string[]>((res, rej) =>
-    pushTokensByCountryRef.child(country.id).once(
-      'value',
-      snapshot => {
-        const value = snapshot.val();
-        res(Array.isArray(value) ? value : []);
-      },
-      rej,
-    ),
+    getPushTokensByCountryRef(needFake)
+      .child(country.id)
+      .once(
+        'value',
+        snapshot => {
+          const value = snapshot.val();
+          res(Array.isArray(value) ? value : []);
+        },
+        rej,
+      ),
   );
 
-export const getWatchedCountriesIdForUser = (pushId: string) =>
+export const getWatchedCountriesIdForUser = (
+  pushId: string,
+  needFake: boolean,
+) =>
   new Promise<string[]>((res, rej) =>
-    countriesIdByPushToken.child(pushId).once(
-      'value',
-      snapshot => {
-        const value = snapshot.val();
-        res(Array.isArray(value) ? value : []);
-      },
-      rej,
-    ),
+    getCountriesIdByPushTokenRef(needFake)
+      .child(pushId)
+      .once(
+        'value',
+        snapshot => {
+          const value = snapshot.val();
+          res(Array.isArray(value) ? value : []);
+        },
+        rej,
+      ),
   );
 
 export const addWatcherForCountry = async (
   country: Country,
   pushId: string,
+  needFake: boolean,
 ) => {
-  const watchers = await getWatchersForCountry(country);
-  const countriesId = await getWatchedCountriesIdForUser(pushId);
+  const watchers = await getWatchersForCountry(country, needFake);
+  const countriesId = await getWatchedCountriesIdForUser(pushId, needFake);
   if (watchers.includes(pushId)) {
     log(
+      needFake,
       `user "${pushId}" has already watch country "${
         country.name
       }|${country.subName || 'global'}"`,
@@ -49,21 +76,28 @@ export const addWatcherForCountry = async (
     return;
   }
   log(
+    needFake,
     `add watcher "${pushId}" for country "${country.name}|${country.subName ||
       'global'}"`,
   );
-  await countriesIdByPushToken.child(pushId).set([...countriesId, country.id]);
-  await pushTokensByCountryRef.child(country.id).set([...watchers, pushId]);
+  await getCountriesIdByPushTokenRef(needFake)
+    .child(pushId)
+    .set([...countriesId, country.id]);
+  await getPushTokensByCountryRef(needFake)
+    .child(country.id)
+    .set([...watchers, pushId]);
 };
 
 export const removeWatcherForCountry = async (
   country: Country,
   pushId: string,
+  needFake: boolean,
 ) => {
-  const watchers = await getWatchersForCountry(country);
-  const countriesId = await getWatchedCountriesIdForUser(pushId);
+  const watchers = await getWatchersForCountry(country, needFake);
+  const countriesId = await getWatchedCountriesIdForUser(pushId, needFake);
   if (!watchers.includes(pushId)) {
     log(
+      needFake,
       `user "${pushId}" hasn't yet watch country "${
         country.name
       }|${country.subName || 'global'}"`,
@@ -71,6 +105,7 @@ export const removeWatcherForCountry = async (
     return;
   }
   log(
+    needFake,
     `remove watcher "${pushId}" for country "${
       country.name
     }|${country.subName || 'global'}"`,
@@ -79,6 +114,10 @@ export const removeWatcherForCountry = async (
   const newCountriesId = countriesId.filter(
     countryId => countryId !== country.id,
   );
-  await countriesIdByPushToken.child(pushId).set(newCountriesId);
-  await pushTokensByCountryRef.child(country.id).set(newWatchers);
+  await getCountriesIdByPushTokenRef(needFake)
+    .child(pushId)
+    .set(newCountriesId);
+  await getPushTokensByCountryRef(needFake)
+    .child(country.id)
+    .set(newWatchers);
 };

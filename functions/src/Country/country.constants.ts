@@ -1,12 +1,22 @@
-export const API_ENDPOINT_ARCGIS =
+export const CURRENT_YEAR = 2020;
+
+export const API_ENDPOINT_ARGCIS =
   'https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/ncov_cases/FeatureServer/1/query?f=json&where=Confirmed%20%3E%200&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&orderByFields=Confirmed%20desc%2CCountry_Region%20asc%2CProvince_State%20asc&resultOffset=0&resultRecordCount=250&cacheHint=true';
 
 export const WEB_ENDPOINT_WORLDOMETERS =
   'https://www.worldometers.info/coronavirus/';
 
-export const COUNTRY_REF_KEY = '/country';
+export const WEB_ENDPOINT_WORLDOMETERS_BY_COUNTRY = (country: string) =>
+  `https://www.worldometers.info/coronavirus/country/${country}`;
+
+export const COUNTRY_REF_KEY = 'country';
+export const HISTORY_REF_KEY = 'history';
 
 export const FLAG_REPLACE_REG = /republic|democratic| of |federation| the /gi;
+
+export const WORLDOMETERS_HISTORY_ACTIVE_CASES_REG = /graph\-active\-cases\-total.+?categories: *(\[.+?\]).+?data: *(\[.+?\])/ms;
+export const WORLDOMETERS_HISTORY_DEATHS_REG = /coronavirus\-deaths\-linear.+?categories: *(\[.+?\]).+?data: *(\[.+?\])/ms;
+export const WORLDOMETERS_HISTORY_DAILY_RECOVERED_REG = /cases\-cured\-daily.+?categories: *(\[.+?\]).+?data: *(\[.+?\])/ms;
 
 export const FLAGS = [
   'samoa',

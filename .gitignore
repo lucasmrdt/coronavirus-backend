@@ -65,3 +65,7 @@ node_modules/
 .env
 
 serviceAccountKey.json
+
+# custom
+.keys
+.vscode

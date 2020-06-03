@@ -1,7 +1,35 @@
 {
-  /* Visit https://firebase.google.com/docs/database/security to learn more about security rules. */
   "rules": {
-    ".read": true,
-    ".write": false
+    ".write": false,
+    "66912914-ade4-4284-bdf7-776107ffd05e_country": {
+      ".read": true
+    },
+    "66912914-ade4-4284-bdf7-776107ffd05e_history": {
+      "$id": {
+        ".read": true
+      }
+    },
+    "66912914-ade4-4284-bdf7-776107ffd05e_notification": {
+      "by_tokens": {
+        "$id": {
+          ".read": true
+        }
+      }
+    },
+    "07b1c2de-8ce6-4c45-84f1-07e36b189bc5_country": {
+      ".read": true
+    },
+    "07b1c2de-8ce6-4c45-84f1-07e36b189bc5_history": {
+      "$id": {
+        ".read": true
+      }
+    },
+    "07b1c2de-8ce6-4c45-84f1-07e36b189bc5_notification": {
+      "by_tokens": {
+        "$id": {
+          ".read": true
+        }
+      }
+    }
   }
 }

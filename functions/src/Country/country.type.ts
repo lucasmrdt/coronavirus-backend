@@ -1,8 +1,23 @@
+export interface HistoryItem {
+  label: string;
+  value: number;
+}
+
+export interface CountryHistory {
+  id: string;
+  country: string;
+  flag: string | null;
+  actives: HistoryItem[] | null;
+  deaths: HistoryItem[] | null;
+  recovered: HistoryItem[] | null;
+}
+
 export interface SimpleCountry {
   name: string;
-  nbConfirmed: number;
+  nbActives: number;
   nbDeaths: number;
   nbRecovered: number;
+  historyName: string | null;
 }
 
 export interface Country extends SimpleCountry {

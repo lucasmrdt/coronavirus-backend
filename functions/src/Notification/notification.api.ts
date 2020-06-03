@@ -1,18 +1,12 @@
-import * as functions from 'firebase-functions';
 import * as OneSignal from 'onesignal-node';
-import {Country} from '../Country';
-import {capitalize} from '../utils';
 
-const {ENV_ONESIGNAL_APP_ID, ENV_ONESIGNAL_API_KEY} = process.env;
-
-const {
-  id: ONESIGNAL_APP_ID = ENV_ONESIGNAL_APP_ID,
-  key: ONESIGNAL_API_KEY = ENV_ONESIGNAL_API_KEY,
-} = functions.config().onesignal || {};
+import {capitalize} from '@/utils';
+import {ONESIGNAL_API_KEY, ONESIGNAL_APP_ID} from '@/config';
+import {Country} from '@/Country';
 
 if (!ONESIGNAL_API_KEY || !ONESIGNAL_APP_ID) {
   throw new Error(
-    "env variables 'ONESIGNAL_API_KEY' and 'ONESIGNAL_APP_ID' are required",
+    "env variables 'ENV_ONESIGNAL_API_KEY' and 'ENV_ONESIGNAL_APP_ID' are required",
   );
 }
 
@@ -29,15 +23,11 @@ export const sendCountryUpdateNotification = async (
   after: Country,
 ) => {
   const {
-    nbConfirmed: beforeNbConfirmed,
+    nbActives: beforeNbActives,
     nbDeaths: beforeNbDeaths,
     nbRecovered: beforeNbRecovered,
   } = before;
-  const beforeNbActives =
-    beforeNbConfirmed - beforeNbDeaths - beforeNbRecovered;
-
-  const {name, subName, nbConfirmed, nbDeaths, nbRecovered} = after;
-  const nbActives = nbConfirmed - nbDeaths - nbRecovered;
+  const {name, subName, nbActives, nbDeaths, nbRecovered} = after;
 
   const diffActives = nbActives - beforeNbActives;
   const diffDeaths = nbDeaths - beforeNbDeaths;
@@ -46,40 +36,29 @@ export const sendCountryUpdateNotification = async (
   const titlePrefix = `${name}${subName ? ` (${capitalize(subName)})` : ''}`;
 
   try {
-    const a = await client.createNotification({
+    await client.createNotification({
       headings: {
-        en: `${titlePrefix} | Total : ${nbActives.toLocaleString(
-          'en',
-        )} ${showDiff(nbConfirmed - beforeNbConfirmed, 'en')} 🙍🏻‍♂️`,
-        fr: `${titlePrefix} | Total : ${nbActives.toLocaleString(
-          'fr',
-        )} ${showDiff(0, 'fr')} 🙍🏻‍♂️`,
+        en: titlePrefix,
+        fr: titlePrefix,
       },
       contents: {
-        en: `${nbActives.toLocaleString('en')} ${showDiff(
+        en: `😷 ${nbActives.toLocaleString('en')} ${showDiff(
           diffActives,
           'en',
-        )} 🤢  ·  ${nbRecovered.toLocaleString('en')} ${showDiff(
+        )}\n😇 ${nbRecovered.toLocaleString('en')} ${showDiff(
           diffRecovered,
           'en',
-        )} 😇  ·  ${nbDeaths.toLocaleString('en')} ${showDiff(
-          diffDeaths,
-          'en',
-        )} 💀`,
-        fr: `${nbActives.toLocaleString('fr')} ${showDiff(
+        )}\n😵 ${nbDeaths.toLocaleString('en')} ${showDiff(diffDeaths, 'en')}`,
+        fr: `😷 ${nbActives.toLocaleString('fr')} ${showDiff(
           diffActives,
           'fr',
-        )} 🤢  ·  ${nbRecovered.toLocaleString('fr')} ${showDiff(
+        )}\n😇 ${nbRecovered.toLocaleString('fr')} ${showDiff(
           diffRecovered,
           'fr',
-        )} 😇  ·  ${nbDeaths.toLocaleString('fr')} ${showDiff(
-          diffDeaths,
-          'fr',
-        )} 💀`,
+        )}\n😵 ${nbDeaths.toLocaleString('fr')} ${showDiff(diffDeaths, 'fr')}`,
       },
       include_player_ids: pushTokens,
     });
-    console.log(a);
   } catch (e) {
     console.log(e);
   }
